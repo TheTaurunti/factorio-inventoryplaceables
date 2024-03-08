@@ -1,4 +1,3 @@
-
 local function thing_is_in_list(thing, list_things)
   for _, thing_from_list in ipairs(list_things) do
     if (thing == thing_from_list)
@@ -11,11 +10,10 @@ end
 
 
 local _quickbar_cache = nil
-local function set_quickbar_cache(event)
+local function set_quickbar_cache(player)
   _quickbar_cache = {}
 
   -- Factorio seems to have a hard limit of 10 quickbars.
-  local player = game.players[event.player_index]
   for i = 1, 100 do
     local quickbar_item_prototype = player.get_quick_bar_slot(i)
     if (quickbar_item_prototype)
@@ -27,28 +25,28 @@ local function set_quickbar_cache(event)
       end
 
       table.insert(_quickbar_cache, quickbar_item_name)
-      
+
       ::go_if_duplicate::
     end
-  end 
+  end
 end
-local function get_quickbar_cache(event)
+local function get_quickbar_cache(player)
   if (not _quickbar_cache)
   then
-    set_quickbar_cache(event)
+    set_quickbar_cache(player)
   end
 
   return _quickbar_cache
 end
 script.on_event(defines.events.on_player_set_quick_bar_slot, function(event)
-  set_quickbar_cache(event)
+  set_quickbar_cache(game.players[event.player_index])
 end)
 
 
 local function ItemCanBePlaced(item_prototype)
   if (item_prototype.place_result) then return true end
   if (item_prototype.place_as_tile_result) then return true end
-  
+
   -- Modules and Wires are good exceptions to include
   if (item_prototype.type == "module") then return true end
   local item_is_logic_wire = ((item_prototype.name == "red-wire") or (item_prototype.name == "green-wire"))
@@ -73,12 +71,12 @@ local function get_placeable_item_prototypes_sorted()
       end
     end
   end
-  
+
   return _placeable_item_prototypes_sorted
 end
 
 local function get_hard_stop_index(inventory)
-  local stop_filters = {"raw-fish", "deconstruction-planner"}
+  local stop_filters = { "raw-fish", "deconstruction-planner" }
   -- Fish or Deco Planner indicates a hard stop point.
   -- >> This is to preserve the player-defined filters
 
@@ -107,12 +105,12 @@ script.on_event(defines.events.on_gui_opened, function(event)
   local player = game.players[event.player_index]
   local inventory = player.get_main_inventory()
 
-  
+
   -- This index is where to stop setting filters automagically at.
   -- >> everything before it is free reign, everything after it
   -- ... is protected, even if filters are not set there.
   -- We return if no hard stop index is present, because
-  -- ... otherwise the mod can run on a mature inventory 
+  -- ... otherwise the mod can run on a mature inventory
   -- ... with filters (installed midgame), and would be rather
   -- ... destructive, which is obviously bad.
   -- THEREFORE, mod should not run when a safe area is not defined
@@ -161,7 +159,7 @@ script.on_event(defines.events.on_gui_opened, function(event)
 
   -- By iterating over the sorted list, items should be set in
   -- ... the placeable table in the correct order.
-  local quickbar_cache = get_quickbar_cache(event)
+  local quickbar_cache = get_quickbar_cache(player)
   local game_item_prototypes = game.item_prototypes
   local placeable_item_prototypes_sorted = get_placeable_item_prototypes_sorted()
 
@@ -169,7 +167,8 @@ script.on_event(defines.events.on_gui_opened, function(event)
   for _, item in ipairs(placeable_item_prototypes_sorted) do
     if (inventory_contents[item])
     then
-      local item_is_in_excluded_lists = thing_is_in_list(item, quickbar_cache) or thing_is_in_list(item, player_defined_filters)
+      local item_is_in_excluded_lists = thing_is_in_list(item, quickbar_cache) or
+          thing_is_in_list(item, player_defined_filters)
 
       if (not item_is_in_excluded_lists)
       then
@@ -182,13 +181,12 @@ script.on_event(defines.events.on_gui_opened, function(event)
     end
   end
 
-  
+
   -- Set Inventory Filters
   local slots_filtered = #filters_to_set
   local inventory_has_space_for_sorting = (inventory.count_empty_stacks() >= slots_filtered)
 
-  -- If you can't sort appropriately, then clear any existing filters.
-  -- >> This is so the mod is not a nuisance when dealing with a full inventory.
+  -- CLEARING FILTERS WHEN YOU CAN'T SORT
   if (not inventory_has_space_for_sorting)
   then
     for i = 1, hard_stop_index - 1 do
@@ -199,18 +197,29 @@ script.on_event(defines.events.on_gui_opened, function(event)
     return
   end
 
-  -- Set Filters for inventory that can be sorted after
+  -- SETTING FILTERS
   for i = 1, hard_stop_index - 1 do
     inventory.set_filter(i, filters_to_set[i])
   end
+
+  -- Iterate through all filtered slots:
+  -- >> look for pairs of mismatched item/filters that can be swapped.
+  -- >> If no swap, note the item and location (to be moved around later)
+
+
+  local inventory_object = {
+    mismatched_filters = {
+      [1] = { filter = "", item = "" }
+    }
+  }
 
   -- Doing Custom Sort / Moving Items Into Filtered Slots (beacuse there is space for it)
   local empty_slot_indices = {}
   local empty_slot_iterator = slots_filtered + 1
   while ((#empty_slot_indices < slots_filtered) and (empty_slot_iterator <= #inventory)) do
-
     local filter = inventory.get_filter(empty_slot_iterator)
-    if (not inventory[empty_slot_iterator].valid_for_read and not filter)
+    local slot_is_empty_and_unfiltered = not (filter or inventory[empty_slot_iterator].valid_for_read)
+    if (slot_is_empty_and_unfiltered)
     then
       table.insert(empty_slot_indices, empty_slot_iterator)
     end
@@ -222,24 +231,24 @@ script.on_event(defines.events.on_gui_opened, function(event)
   for i = 1, slots_filtered do
     inventory[i].swap_stack(inventory[empty_slot_indices[i]])
   end
-  
+
   inventory.sort_and_merge()
-  
+
 
 
 
   -- LuaInventory.sort_and_merge() isn't very smart with filtered slots.
   -- inventory.sort_and_merge()
 
-  
-  
-  
+
+
+
 
   -- There is (almost definitely) a solution to this which only requires 1 empty
   -- ... slot to swap stacks into/between. The limitation that
   -- ... you can't put the wrong item in a filtered slot is tough.
-  -- >> That solution will take a lot of brainpower. 
-  -- ... Simplest solution is to require as much empty space as 
+  -- >> That solution will take a lot of brainpower.
+  -- ... Simplest solution is to require as much empty space as
   -- ... there are filtered slots. Then throw each stack occupying
   -- ... a filtered spot into an empty one, then sort and merge as normal
 
@@ -247,7 +256,7 @@ script.on_event(defines.events.on_gui_opened, function(event)
   -- -- ==============================================
   -- for i = 1, slots_filtered do
   --   -- I want to put the correct item in this slot.
-  --   -- ... if it is not already here.   
+  --   -- ... if it is not already here.
 
   --   local filter_i = inventory.get_filter(i)
   --   if (not (filter_i == inventory[i].name))
