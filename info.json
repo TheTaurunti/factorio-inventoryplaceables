@@ -1,11 +1,11 @@
 {
   "name": "InventoryPlaceables",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "title": "Inventory Placeables",
   "author": "Taurunti",
   "contact": "thetaurunti@gmail.com",
   "homepage": "https://github.com/TheTaurunti/factorio-inventoryplaceables",
-  "factorio_version": "1.1",
-  "dependencies": ["base >= 1.1"],
-  "description": "Highlights placeable items in your inventory by setting filters. Ignores things on your quickbar, and items that you set filters for manually. Designed for use with big mods that add a lot of production buildings - e.g. Pyanodon's, Bob's/Angel's, Space Exploration, Krastorio2, etc etc etc etc."
+  "factorio_version": "2.0",
+  "dependencies": ["base >= 2.0"],
+  "description": "My criminally-underrated second-favorite mod! Dynamically sets inventory filters so you can always find placeable items in your inventory. Ignores things on your quickbar, and items that you set filters for manually."
 }
