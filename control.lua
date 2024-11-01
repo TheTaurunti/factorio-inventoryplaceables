@@ -102,6 +102,9 @@ script.on_event(defines.events.on_gui_opened, function(event)
 	local player = game.players[event.player_index]
 	local inventory = player.get_main_inventory()
 
+	-- Relevant for 2.0 Remote View
+	if (inventory == nil) then return end
+
 
 	-- This index is where to stop setting filters automagically at.
 	-- >> everything before it is free reign, everything after it
