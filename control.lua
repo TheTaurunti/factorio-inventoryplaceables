@@ -169,6 +169,7 @@ script.on_event(defines.events.on_gui_opened, function(event)
 	local quickbar_cache = get_quickbar_cache(player)
 	local game_item_prototypes = prototypes.item
 	local placeable_item_prototype_names = get_placeable_item_prototypes_sorted()
+	local PLAYER_MAX_FILTERS_PER_ITEM = player.mod_settings["InventoryPlaceables-max-slots-filtered-per-item"].value
 
 	local filters_to_set = {}
 	for _, item in ipairs(placeable_item_prototype_names) do
@@ -181,9 +182,10 @@ script.on_event(defines.events.on_gui_opened, function(event)
 			then
 				local stack_size = game_item_prototypes[item].stack_size
 
+				-- This step makes sure all quality versions are accounted for
 				for _, count_and_quality in ipairs(items_in_inventory[item]) do
 					local filter = { name = item, quality = count_and_quality.quality }
-					local slots_needed = math.ceil(count_and_quality.count / stack_size)
+					local slots_needed = math.min(PLAYER_MAX_FILTERS_PER_ITEM, math.ceil(count_and_quality.count / stack_size))
 					for i = 1, slots_needed do
 						table.insert(filters_to_set, filter)
 					end
