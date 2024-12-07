@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.4
+Date: 2024-12-06
+  Features:
+    - Logic upgrade, 99% less functionality loss with full inventories!
+    - Filters are now set per-quality for each item.
+---------------------------------------------------------------------------------------------------
 Version: 1.0.3
 Date: 2024-11-02
   Features:
