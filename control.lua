@@ -36,6 +36,7 @@ end
 -- > that is to say, it never seems to be "nil"
 local function get_quality(proto_with_quality_field)
   local quality = proto_with_quality_field.quality
+  if (quality == nil) then return nil end
   return quality.name or quality
 end
 
@@ -50,10 +51,11 @@ local function set_quickbar_cache(player)
     local quickbar_item_filter = player.get_quick_bar_slot(i)
     if (quickbar_item_filter)
     then
-      add_to_two_tier_lookup(
-        _quickbar_cache, quickbar_item_filter.name,
-        get_quality(quickbar_item_filter)
-      )
+      local qual = get_quality(quickbar_item_filter)
+      if (qual ~= nil)
+      then
+        add_to_two_tier_lookup(_quickbar_cache, quickbar_item_filter.name, qual)
+      end
     end
   end
 end
